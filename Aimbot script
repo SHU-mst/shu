@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 local fovCircle = Drawing.new("Circle")
 fovCircle.Thickness = 2
 fovCircle.Radius = 140 -- Default FOV circle radius (140 pixels)
-fovCircle.Color = Color3.fromRGB(0, 255, 0) -- Green color
+fovCircle.Color = Color3.fromRGB(0, 0, 225) -- Green color
 fovCircle.Filled = false
 fovCircle.Transparency = 1
 
