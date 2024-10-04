@@ -1,22 +1,106 @@
--- LocalScript to highlight all players
-while true do
-
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
-local function highlightPlayer(player)
-    if player ~= localPlayer and player.Character then
-        local highlight = Instance.new("Highlight")
-        highlight.Parent = player.Character
+local isHighlighting = false -- Variable to track highlighting status
+local highlights = {} -- Table to store highlights for easy management
+
+local function createHealthBar(player)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        local humanoid = player.Character:FindFirstChild("Humanoid")
         
-        highlight.FillColor = Color3.fromRGB(0, 69, 181)  -- Red fill color
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 0)  -- Yellow outline color
-        highlight.FillTransparency = 0.5  -- Semi-transparent
-        highlight.OutlineTransparency = 0  -- Fully opaque outline
+        -- Create a BillboardGui for the health bar
+        local billboardGui = Instance.new("BillboardGui")
+        billboardGui.Adornee = player.Character.Head
+        billboardGui.Size = UDim2.new(0, 100, 0, 20)
+        billboardGui.StudsOffset = Vector3.new(0, 3, 0) -- Offset above the head
+        billboardGui.AlwaysOnTop = true
+        
+        -- Create a Frame to represent the health bar
+        local healthBar = Instance.new("Frame")
+        healthBar.Size = UDim2.new(1, 0, 1, 0)
+        healthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green color for health
+        healthBar.Parent = billboardGui
+        
+        -- Create a TextLabel to show health percentage
+        local healthLabel = Instance.new("TextLabel")
+        healthLabel.Size = UDim2.new(1, 0, 1, 0)
+        healthLabel.BackgroundTransparency = 1
+        healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text
+        healthLabel.TextScaled = true
+        healthLabel.Parent = billboardGui
+        
+        billboardGui.Parent = player.Character.Head
+
+        -- Update health bar and label when health changes
+        humanoid.HealthChanged:Connect(function(health)
+            local healthPercentage = health / humanoid.MaxHealth
+            healthBar.Size = UDim2.new(healthPercentage, 0, 1, 0)
+            healthLabel.Text = string.format("%d%%", math.ceil(healthPercentage * 100))
+        end)
     end
 end
 
--- Highlight all existing players
+local function highlightPlayer(player)
+    if player ~= localPlayer and player.Character then
+        -- Check if the highlight already exists to prevent duplicates
+        if not player.Character:FindFirstChild("Highlight") then
+            local highlight = Instance.new("Highlight")
+            highlight.Parent = player.Character
+            
+            highlight.FillColor = Color3.fromRGB(0, 69, 181)  -- Blue fill color
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 0)  -- Yellow outline color
+            highlight.FillTransparency = 0.5  -- Semi-transparent fill
+            highlight.OutlineTransparency = 0  -- Fully opaque outline
+
+            -- Store the highlight in the highlights table
+            highlights[player] = highlight
+
+            -- Create a health bar for the player
+            createHealthBar(player)
+        end
+    end
+end
+
+local function removeHighlight(player)
+    if highlights[player] then
+        highlights[player]:Destroy() -- Remove the highlight instance
+        highlights[player] = nil -- Clear from the highlights table
+    end
+end
+
+-- Toggle highlighting on/off
+local function toggleHighlighting()
+    isHighlighting = not isHighlighting -- Toggle the state
+    if isHighlighting then
+        -- Highlight all existing players
+        for _, player in ipairs(Players:GetPlayers()) do
+            highlightPlayer(player)
+        end
+        -- Connect to player joining event to highlight new players
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Wait() -- Wait for the character to be added
+            highlightPlayer(player)
+        end)
+    else
+        -- Remove highlights from all players
+        for player, highlight in pairs(highlights) do
+            removeHighlight(player)
+        end
+        highlights = {} -- Clear the highlights table
+    end
+end
+
+-- Handle user input
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.F then
+            toggleHighlighting() -- Call the toggle function on pressing F
+        end
+    end
+end)
+
+-- Highlight existing players on startup
 for _, player in ipairs(Players:GetPlayers()) do
     highlightPlayer(player)
 end
@@ -24,7 +108,19 @@ end
 -- Highlight new players when they join
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Wait() -- Wait for the character to be added
-    highlightPlayer(player)
+    if isHighlighting then
+        highlightPlayer(player)
+    end
 end)
-wait(0.5)
+
+-- Infinite loop to continuously check for conditions
+while true do
+    wait(1) -- Wait for 1 second between iterations to avoid freezing the game
+
+    -- You can add additional checks or functionality here
+    if isHighlighting then
+        for _, player in ipairs(Players:GetPlayers()) do
+            highlightPlayer(player) -- Re-check to highlight players if needed
+        end
+    end
 end
