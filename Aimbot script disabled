@@ -1,0 +1,112 @@
+local player = game.Players.LocalPlayer
+local camera = game.Workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Create a FOV Circle using the Drawing API
+local fovCircle = Drawing.new("Circle")
+fovCircle.Thickness = 2
+fovCircle.Radius = 140 -- Default FOV circle radius (140 pixels)
+fovCircle.Color = Color3.fromRGB(0, 255, 0) -- Green color
+fovCircle.Filled = false
+fovCircle.Transparency = 1
+
+-- Toggle state for aimbot and global disable toggle
+local aimbotEnabled = false
+local disabled = true -- Start with the system disabled by default
+
+-- Function to find the nearest player's head within FOV
+local function getNearestPlayer()
+    if disabled then return nil end -- Return nil if the system is disabled
+    local nearestPlayer = nil
+    local shortestDistance = math.huge -- set to infinity
+    local players = game.Players:GetPlayers()
+
+    for _, otherPlayer in ipairs(players) do
+        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Head") then
+            local head = otherPlayer.Character.Head
+            local screenPosition, onScreen = camera:WorldToScreenPoint(head.Position)
+
+            if onScreen then
+                local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                local distance = (screenCenter - Vector2.new(screenPosition.X, screenPosition.Y)).Magnitude
+                
+                -- Only consider players within the FOV circle radius
+                if distance < fovCircle.Radius and distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestPlayer = otherPlayer
+                end
+            end
+        end
+    end
+
+    return nearestPlayer
+end
+
+-- Function to lock onto nearest player's head
+local function aimAtNearestPlayer()
+    if aimbotEnabled and not disabled then -- Only aim when aimbot is enabled and system is not disabled
+        local nearestPlayer = getNearestPlayer()
+        if nearestPlayer and nearestPlayer.Character and nearestPlayer.Character:FindFirstChild("Head") then
+            local head = nearestPlayer.Character.Head
+            camera.CFrame = CFrame.new(camera.CFrame.Position, head.Position)
+        end
+    end
+end
+
+-- Update FOV Circle position to the center of the screen
+local function updateFOVCircle()
+    if disabled then return end -- Do not update FOV circle if disabled
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    fovCircle.Position = screenCenter
+end
+
+-- Toggle the aimbot when "E" key is pressed
+local function toggleAimbot(input)
+    if disabled then return end -- Do nothing if the system is disabled
+    if input.KeyCode == Enum.KeyCode.E then
+        aimbotEnabled = not aimbotEnabled -- Toggle aimbot on/off
+        if aimbotEnabled then
+            print("Aimbot Enabled")
+        else
+            print("Aimbot Disabled")
+        end
+    end
+end
+
+-- Resize FOV when arrow keys are pressed
+local function resizeFOV(input)
+    if disabled then return end -- Do nothing if the system is disabled
+    if input.KeyCode == Enum.KeyCode.Up then
+        fovCircle.Radius = fovCircle.Radius + 10 -- Increase the FOV size
+        print("FOV increased to:", fovCircle.Radius)
+    elseif input.KeyCode == Enum.KeyCode.Down then
+        fovCircle.Radius = math.max(20, fovCircle.Radius - 10) -- Decrease the FOV size, minimum of 20
+        print("FOV decreased to:", fovCircle.Radius)
+    end
+end
+
+-- Toggle the entire system on/off with the "F" key
+local function toggleSystem(input)
+    if input.KeyCode == Enum.KeyCode.F then
+        disabled = not disabled -- Toggle system on/off
+        if disabled then
+            print("System Disabled")
+        else
+            print("System Enabled")
+        end
+    end
+end
+
+-- Connect the key press event for toggling and resizing
+UserInputService.InputBegan:Connect(toggleAimbot)
+UserInputService.InputBegan:Connect(resizeFOV)
+UserInputService.InputBegan:Connect(toggleSystem)
+
+-- Connect aim function and update FOV circle every frame
+RunService.RenderStepped:Connect(function()
+    if not disabled then
+        updateFOVCircle()
+        aimAtNearestPlayer()
+    end
+end)
