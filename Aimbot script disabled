@@ -2,6 +2,7 @@ local player = game.Players.LocalPlayer
 local camera = game.Workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 -- Create a FOV Circle using the Drawing API
 local fovCircle = Drawing.new("Circle")
@@ -81,13 +82,33 @@ local function resizeFOV(input)
     end
 end
 
+-- Create a button to close the script
+local function createCloseButton()
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 100, 0, 50)
+    closeButton.Position = UDim2.new(0.5, -50, 0, 20) -- Centered at the top
+    closeButton.Text = "Close"
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red color
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text
+    closeButton.Parent = player:WaitForChild("PlayerGui")
+
+    closeButton.MouseButton1Click:Connect(function()
+        fovCircle:Remove() -- Remove the FOV circle
+        closeButton:Destroy() -- Remove the button
+        print("Script Closed") -- Confirmation message
+        -- Optionally, you can use task.cancel() or similar to stop any processes
+    end)
+end
+
 -- Connect the key press event for toggling and resizing
 UserInputService.InputBegan:Connect(toggleAimbot)
 UserInputService.InputBegan:Connect(resizeFOV)
+
+-- Create the close button
+createCloseButton()
 
 -- Connect aim function and update FOV circle every frame
 RunService.RenderStepped:Connect(function()
     updateFOVCircle()
     aimAtNearestPlayer()
-end) 
-Disabled = true
+end)
