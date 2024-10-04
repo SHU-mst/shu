@@ -1,95 +1,76 @@
-local player = game.Players.LocalPlayer
-local camera = game.Workspace.CurrentCamera
+-- LocalScript to highlight all players with toggle functionality
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
--- Immediately close the script
-script:Destroy()
+local isHighlighting = false -- Variable to track highlighting status
+local highlights = {} -- Table to store highlights for easy management
 
--- Create a FOV Circle using the Drawing API
-local fovCircle = Drawing.new("Circle")
-fovCircle.Thickness = 2
-fovCircle.Radius = 140 -- Default FOV circle radius (140 pixels)
-fovCircle.Color = Color3.fromRGB(0, 255, 0) -- Green color
-fovCircle.Filled = false
-fovCircle.Transparency = 1
+local function highlightPlayer(player)
+    if player ~= localPlayer and player.Character then
+        -- Check if the highlight already exists to prevent duplicates
+        if not player.Character:FindFirstChild("Highlight") then
+            local highlight = Instance.new("Highlight")
+            highlight.Parent = player.Character
+            
+            highlight.FillColor = Color3.fromRGB(0, 69, 181)  -- Blue fill color
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 0)  -- Yellow outline color
+            highlight.FillTransparency = 0.5  -- Semi-transparent fill
+            highlight.OutlineTransparency = 0  -- Fully opaque outline
 
--- Toggle state for aimbot
-local aimbotEnabled = false
-
--- Function to find the nearest player's head within FOV
-local function getNearestPlayer()
-    local nearestPlayer = nil
-    local shortestDistance = math.huge -- set to infinity
-    local players = game.Players:GetPlayers()
-
-    for _, otherPlayer in ipairs(players) do
-        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Head") then
-            local head = otherPlayer.Character.Head
-            local screenPosition, onScreen = camera:WorldToScreenPoint(head.Position)
-
-            if onScreen then
-                local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-                local distance = (screenCenter - Vector2.new(screenPosition.X, screenPosition.Y)).Magnitude
-                
-                -- Only consider players within the FOV circle radius
-                if distance < fovCircle.Radius and distance < shortestDistance then
-                    shortestDistance = distance
-                    nearestPlayer = otherPlayer
-                end
-            end
-        end
-    end
-
-    return nearestPlayer
-end
-
--- Function to lock onto nearest player's head
-local function aimAtNearestPlayer()
-    if aimbotEnabled then -- Only aim when aimbot is enabled
-        local nearestPlayer = getNearestPlayer()
-        if nearestPlayer and nearestPlayer.Character and nearestPlayer.Character:FindFirstChild("Head") then
-            local head = nearestPlayer.Character.Head
-            camera.CFrame = CFrame.new(camera.CFrame.Position, head.Position)
+            -- Store the highlight in the highlights table
+            highlights[player] = highlight
         end
     end
 end
 
--- Update FOV Circle position to the center of the screen
-local function updateFOVCircle()
-    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-    fovCircle.Position = screenCenter
+local function removeHighlight(player)
+    if highlights[player] then
+        highlights[player]:Destroy() -- Remove the highlight instance
+        highlights[player] = nil -- Clear from the highlights table
+    end
 end
 
--- Toggle the aimbot when "E" key is pressed
-local function toggleAimbot(input)
-    if input.KeyCode == Enum.KeyCode.E then
-        aimbotEnabled = not aimbotEnabled -- Toggle aimbot on/off
-        if aimbotEnabled then
-            print("Aimbot Enabled")
-        else
-            print("Aimbot Disabled")
+-- Toggle highlighting on/off
+local function toggleHighlighting()
+    isHighlighting = not isHighlighting -- Toggle the state
+    if isHighlighting then
+        -- Highlight all existing players
+        for _, player in ipairs(Players:GetPlayers()) do
+            highlightPlayer(player)
+        end
+        -- Connect to player joining event to highlight new players
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Wait() -- Wait for the character to be added
+            highlightPlayer(player)
+        end)
+    else
+        -- Remove highlights from all players
+        for player, highlight in pairs(highlights) do
+            removeHighlight(player)
+        end
+        highlights = {} -- Clear the highlights table
+    end
+end
+
+-- Handle user input
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.F then
+            toggleHighlighting() -- Call the toggle function on pressing F
         end
     end
+end)
+
+-- Highlight existing players on startup
+for _, player in ipairs(Players:GetPlayers()) do
+    highlightPlayer(player)
 end
 
--- Resize FOV when arrow keys are pressed
-local function resizeFOV(input)
-    if input.KeyCode == Enum.KeyCode.Up then
-        fovCircle.Radius = fovCircle.Radius + 10 -- Increase the FOV size
-        print("FOV increased to:", fovCircle.Radius)
-    elseif input.KeyCode == Enum.KeyCode.Down then
-        fovCircle.Radius = math.max(20, fovCircle.Radius - 10) -- Decrease the FOV size, minimum of 20
-        print("FOV decreased to:", fovCircle.Radius)
+-- Highlight new players when they join
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Wait() -- Wait for the character to be added
+    if isHighlighting then
+        highlightPlayer(player)
     end
-end
-
--- Connect the key press event for toggling and resizing
-UserInputService.InputBegan:Connect(toggleAimbot)
-UserInputService.InputBegan:Connect(resizeFOV)
-
--- Connect aim function and update FOV circle every frame
-RunService.RenderStepped:Connect(function()
-    updateFOVCircle()
-    aimAtNearestPlayer()
 end)
