@@ -2,92 +2,91 @@ local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
-local isHighlighting = false -- Variable to track highlighting status
-local highlights = {} -- Table to store highlights for easy management
+local isSkeletonESP = false -- Variable to track skeleton ESP status
+local skeletons = {} -- Table to store skeleton models for easy management
 
-local function createHealthBar(player)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        local humanoid = player.Character:FindFirstChild("Humanoid")
-        
-        -- Create a BillboardGui for the health bar
-        local billboardGui = Instance.new("BillboardGui")
-        billboardGui.Adornee = player.Character.Head
-        billboardGui.Size = UDim2.new(0, 100, 0, 20)
-        billboardGui.StudsOffset = Vector3.new(0, 3, 0) -- Offset above the head
-        billboardGui.AlwaysOnTop = true
-        
-        -- Create a Frame to represent the health bar
-        local healthBar = Instance.new("Frame")
-        healthBar.Size = UDim2.new(1, 0, 1, 0)
-        healthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green color for health
-        healthBar.Parent = billboardGui
-        
-        -- Create a TextLabel to show health percentage
-        local healthLabel = Instance.new("TextLabel")
-        healthLabel.Size = UDim2.new(1, 0, 1, 0)
-        healthLabel.BackgroundTransparency = 1
-        healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text
-        healthLabel.TextScaled = true
-        healthLabel.Parent = billboardGui
-        
-        billboardGui.Parent = player.Character.Head
-
-        -- Update health bar and label when health changes
-        humanoid.HealthChanged:Connect(function(health)
-            local healthPercentage = health / humanoid.MaxHealth
-            healthBar.Size = UDim2.new(healthPercentage, 0, 1, 0)
-            healthLabel.Text = string.format("%d%%", math.ceil(healthPercentage * 100))
-        end)
-    end
-end
-
-local function highlightPlayer(player)
+local function createSkeleton(player)
     if player ~= localPlayer and player.Character then
-        -- Check if the highlight already exists to prevent duplicates
-        if not player.Character:FindFirstChild("Highlight") then
-            local highlight = Instance.new("Highlight")
-            highlight.Parent = player.Character
-            
-            highlight.FillColor = Color3.fromRGB(0, 69, 181)  -- Blue fill color
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 0)  -- Yellow outline color
-            highlight.FillTransparency = 0.5  -- Semi-transparent fill
-            highlight.OutlineTransparency = 0  -- Fully opaque outline
+        -- Create a new model for the skeleton
+        local skeletonModel = Instance.new("Model")
+        skeletonModel.Name = player.Name .. "_Skeleton"
+        skeletonModel.Parent = workspace
 
-            -- Store the highlight in the highlights table
-            highlights[player] = highlight
+        -- Create a simple skeleton structure using Parts
+        local head = Instance.new("Part")
+        head.Size = Vector3.new(1, 1, 1) -- Adjust size as needed
+        head.Color = Color3.new(1, 1, 1) -- White color for the skeleton
+        head.Anchored = true
+        head.CanCollide = false
+        head.Parent = skeletonModel
 
-            -- Create a health bar for the player
-            createHealthBar(player)
-        end
+        -- Create other body parts (torso, arms, legs)
+        local torso = Instance.new("Part")
+        torso.Size = Vector3.new(1, 2, 0.5)
+        torso.Color = Color3.new(1, 1, 1)
+        torso.Anchored = true
+        torso.CanCollide = false
+        torso.Parent = skeletonModel
+
+        local leftArm = Instance.new("Part")
+        leftArm.Size = Vector3.new(0.5, 1, 0.5)
+        leftArm.Color = Color3.new(1, 1, 1)
+        leftArm.Anchored = true
+        leftArm.CanCollide = false
+        leftArm.Parent = skeletonModel
+
+        local rightArm = leftArm:Clone()
+        rightArm.Parent = skeletonModel
+
+        local leftLeg = Instance.new("Part")
+        leftLeg.Size = Vector3.new(0.5, 1, 0.5)
+        leftLeg.Color = Color3.new(1, 1, 1)
+        leftLeg.Anchored = true
+        leftLeg.CanCollide = false
+        leftLeg.Parent = skeletonModel
+
+        local rightLeg = leftLeg:Clone()
+        rightLeg.Parent = skeletonModel
+
+        -- Position the skeleton parts relative to the character
+        head.Position = player.Character.Head.Position + Vector3.new(0, 2, 0)
+        torso.Position = player.Character:WaitForChild("Torso").Position + Vector3.new(0, 1, 0)
+        leftArm.Position = torso.Position + Vector3.new(-1, 0, 0)
+        rightArm.Position = torso.Position + Vector3.new(1, 0, 0)
+        leftLeg.Position = torso.Position + Vector3.new(-0.5, -2, 0)
+        rightLeg.Position = torso.Position + Vector3.new(0.5, -2, 0)
+
+        -- Store the skeleton model in the skeletons table
+        skeletons[player] = skeletonModel
     end
 end
 
-local function removeHighlight(player)
-    if highlights[player] then
-        highlights[player]:Destroy() -- Remove the highlight instance
-        highlights[player] = nil -- Clear from the highlights table
+local function removeSkeleton(player)
+    if skeletons[player] then
+        skeletons[player]:Destroy() -- Remove the skeleton model
+        skeletons[player] = nil -- Clear from the skeletons table
     end
 end
 
--- Toggle highlighting on/off
-local function toggleHighlighting()
-    isHighlighting = not isHighlighting -- Toggle the state
-    if isHighlighting then
-        -- Highlight all existing players
+-- Toggle skeleton ESP on/off
+local function toggleSkeletonESP()
+    isSkeletonESP = not isSkeletonESP -- Toggle the state
+    if isSkeletonESP then
+        -- Create skeleton for all existing players
         for _, player in ipairs(Players:GetPlayers()) do
-            highlightPlayer(player)
+            createSkeleton(player)
         end
-        -- Connect to player joining event to highlight new players
+        -- Connect to player joining event to create skeleton for new players
         Players.PlayerAdded:Connect(function(player)
             player.CharacterAdded:Wait() -- Wait for the character to be added
-            highlightPlayer(player)
+            createSkeleton(player)
         end)
     else
-        -- Remove highlights from all players
-        for player, highlight in pairs(highlights) do
-            removeHighlight(player)
+        -- Remove skeletons from all players
+        for player, skeleton in pairs(skeletons) do
+            removeSkeleton(player)
         end
-        highlights = {} -- Clear the highlights table
+        skeletons = {} -- Clear the skeletons table
     end
 end
 
@@ -95,32 +94,35 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     if not gameProcessedEvent and input.UserInputType == Enum.UserInputType.Keyboard then
         if input.KeyCode == Enum.KeyCode.F then
-            toggleHighlighting() -- Call the toggle function on pressing F
+            toggleSkeletonESP() -- Call the toggle function on pressing F
         end
     end
 end)
 
--- Highlight existing players on startup
+-- Create skeletons for existing players on startup
 for _, player in ipairs(Players:GetPlayers()) do
-    highlightPlayer(player)
+    createSkeleton(player)
 end
 
--- Highlight new players when they join
+-- Create skeletons for new players when they join
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Wait() -- Wait for the character to be added
-    if isHighlighting then
-        highlightPlayer(player)
+    if isSkeletonESP then
+        createSkeleton(player)
     end
 end)
 
--- Infinite loop to continuously check for conditions
+-- Infinite loop to continuously update skeleton positions
 while true do
     wait(1) -- Wait for 1 second between iterations to avoid freezing the game
 
-    -- You can add additional checks or functionality here
-    if isHighlighting then
-        for _, player in ipairs(Players:GetPlayers()) do
-            highlightPlayer(player) -- Re-check to highlight players if needed
+    if isSkeletonESP then
+        for player, skeleton in pairs(skeletons) do
+            if player.Character and player.Character:FindFirstChild("Torso") then
+                -- Update the skeleton's position to match the player's character
+                local torso = player.Character.Torso
+                skeleton:SetPrimaryPartCFrame(torso.CFrame)
+            end
         end
     end
 end
