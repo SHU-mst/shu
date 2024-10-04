@@ -1,4 +1,3 @@
--- LocalScript to highlight all players with toggle functionality
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -74,3 +73,15 @@ Players.PlayerAdded:Connect(function(player)
         highlightPlayer(player)
     end
 end)
+
+-- Infinite loop to continuously check for conditions
+while true do
+    wait(1) -- Wait for 1 second between iterations to avoid freezing the game
+
+    -- You can add additional checks or functionality here
+    if isHighlighting then
+        for _, player in ipairs(Players:GetPlayers()) do
+            highlightPlayer(player) -- Re-check to highlight players if needed
+        end
+    end
+end
