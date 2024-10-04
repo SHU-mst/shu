@@ -83,4 +83,46 @@ local function toggleSkeletonESP()
         end)
     else
         -- Remove skeletons from all players
-        for player, skeleton in pai
+        for player, skeleton in pairs(skeletons) do
+            removeSkeleton(player)
+        end
+        skeletons = {} -- Clear the skeletons table
+    end
+end
+
+-- Handle user input
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.F then
+            toggleSkeletonESP() -- Call the toggle function on pressing F
+        end
+    end
+end)
+
+-- Create skeletons for existing players on startup
+for _, player in ipairs(Players:GetPlayers()) do
+    createSkeleton(player)
+end
+
+-- Create skeletons for new players when they join
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Wait() -- Wait for the character to be added
+    if isSkeletonESP then
+        createSkeleton(player)
+    end
+end)
+
+-- Infinite loop to continuously update skeleton positions
+while true do
+    wait(1) -- Wait for 1 second between iterations to avoid freezing the game
+
+    if isSkeletonESP then
+        for player, skeleton in pairs(skeletons) do
+            if player.Character and player.Character:FindFirstChild("Torso") then
+                -- Update the skeleton's position to match the player's character
+                local torso = player.Character:WaitForChild("Torso") -- Wait for the Torso to be available
+                skeleton:SetPrimaryPartCFrame(torso.CFrame)
+            end
+        end
+    end
+end
