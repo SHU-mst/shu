@@ -1,0 +1,30 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Shu AIO", "GrapeTheme")
+
+-- MAIN
+local Main = Window:NewTab("Main")
+local MainSection = Main:NewSection("Main")
+
+
+
+
+-- ESP
+local ESP = Window:NewTab("ESP")
+local ESPSection = Tab:NewSection("ESP")
+
+ESPSection:NewToggle("Walls", "F on/off", function(state)
+    if state then
+loadstring(game:HttpGet(('https://raw.githubusercontent.com/SHU-mst/shu/refs/heads/main/Updated%20ESP')))()
+    else
+ 
+    end
+end)
+
+
+MainSection:NewToggle("Notaimbot", "E On/off", function(state)
+    if state then
+loadstring(game:HttpGet(('https://raw.githubusercontent.com/SHU-mst/shu/refs/heads/main/Aimbot%20script')))()
+    else
+ 
+    end
+end)
