@@ -30,6 +30,6 @@ loadstring(game:HttpGet(('https://raw.githubusercontent.com/SHU-mst/shu/refs/hea
 end)
 
 
-Section:NewKeybind("Toggle GUI", "Press V to toggle", Enum.KeyCode.V, function()
+MainSection:NewKeybind("Toggle GUI", "Press V to toggle", Enum.KeyCode.V, function()
 	Library:ToggleUI()
 end)
