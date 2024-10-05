@@ -10,7 +10,7 @@ local MainSection = Main:NewSection("Main")
 
 -- ESP
 local ESP = Window:NewTab("ESP")
-local ESPSection = Tab:NewSection("ESP")
+local ESPSection = ESP:NewSection("ESP")
 
 ESPSection:NewToggle("Walls", "F on/off", function(state)
     if state then
@@ -27,4 +27,9 @@ loadstring(game:HttpGet(('https://raw.githubusercontent.com/SHU-mst/shu/refs/hea
     else
  
     end
+end)
+
+
+Section:NewKeybind("Toggle GUI", "Press V to toggle", Enum.KeyCode.V, function()
+	Library:ToggleUI()
 end)
