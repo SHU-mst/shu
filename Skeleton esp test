@@ -1,0 +1,38 @@
+-- This script highlights all players in the game and changes their appearance to a skeleton figure.
+
+-- Asset ID for Skeleton Package (replace this with the actual ID)
+local skeletonPackageId = 12345678 -- You would use a valid skeleton asset ID here
+
+-- Function to highlight a player and change their appearance
+local function highlightPlayer(player)
+    -- Check if the player's character exists
+    if player.Character then
+        -- Highlight instance for the player
+        local highlight = Instance.new("Highlight")
+        highlight.FillColor = Color3.fromRGB(255, 255, 255) -- Skeleton color (white)
+        highlight.FillTransparency = 0.5 -- Semi-transparent
+        highlight.OutlineColor = Color3.fromRGB(0, 0, 0) -- Outline color (black)
+        highlight.Parent = player.Character -- Attach to player's character
+
+        -- Change character's appearance to skeleton
+        local humanoid = player.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:ApplyDescription(game.Players:GetHumanoidDescriptionFromUserId(skeletonPackageId))
+        end
+    end
+end
+
+-- Highlight all players when they join
+game.Players.PlayerAdded:Connect(function(player)
+    -- Wait for the character to load
+    player.CharacterAdded:Connect(function()
+        highlightPlayer(player)
+    end)
+end)
+
+-- Highlight all players already in the game when the script runs
+for _, player in ipairs(game.Players:GetPlayers()) do
+    if player.Character then
+        highlightPlayer(player)
+    end
+end
